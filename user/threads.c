@@ -2,6 +2,7 @@
 #include "user/setjmp.h"
 #include "user/threads.h"
 #include "user/user.h"
+#include "user/setjmp.h"
 #define NULL 0
 
 static struct thread* current_thread = NULL;
@@ -31,16 +32,30 @@ struct thread *thread_create(void (*f)(void *), void *arg){
 void thread_add_runqueue(struct thread *t){
     if(current_thread == NULL){
         // TODO
+        current_thread = t;
+        root_thread = t;
     }
     else{
         // TODO
+        if(current_thread->left == NULL){
+            current_thread->left = t;
+        }
+        else if(current_thread->right == NULL){
+            current_thread->right = t;
+        }
+        else{
+            free(t->stack);
+            free(t);
+        }
     }
 }
 void thread_yield(void){
     // TODO
+    setjmp(current_thread->env);
 }
 void dispatch(void){
     // TODO
+    longjmp(current_thread->env, );
 }
 void schedule(void){
     // TODO
