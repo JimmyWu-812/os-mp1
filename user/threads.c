@@ -30,6 +30,8 @@ struct thread *thread_create(void (*f)(void *), void *arg){
     return t;
 }
 void thread_add_runqueue(struct thread *t){
+    t->left = NULL;
+    t->right = NULL;
     if(current_thread == NULL){
         // TODO
         current_thread = t;
@@ -59,36 +61,37 @@ void thread_yield(void){
 }
 void dispatch(void){
     // TODO
+    if(current_thread->buf_set == 0){
+        current_thread->buf_set = 1;
+        current_thread->env->sp = current_thread->stack_p;
+    }
     longjmp(current_thread->env, );
-    thread_exit();
 }
 void schedule(void){
     // TODO
-    struct thread *t = root_thread;
-    while(1){
-        if(t->right != NULL){
-            t = t->right;
-        }
-        else if(t->left != NULL){
-            t = t->left;
-        }
-        else{
-            current_thread = t;
-            break;
-        }
-    }
+    // struct thread *t = root_thread;
+    // while(1){
+    //     if(t->right != NULL){
+    //         t = t->right;
+    //     }
+    //     else if(t->left != NULL){
+    //         t = t->left;
+    //     }
+    //     else{
+    //         current_thread = t;
+    //         break;
+    //     }
+    // }
 }
 void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
         // TODO
         // Hint: No more thread to execute
-
     }
     else{
         // TODO
     }
 }
 void thread_start_threading(void){
-    // TODO
-    longjmp(current_thread->env, );
+    // TODO   
 }
