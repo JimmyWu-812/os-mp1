@@ -55,9 +55,10 @@ void thread_add_runqueue(struct thread *t){
 }
 void thread_yield(void){
     // TODO
-    setjmp(current_thread->env);
-    schedule();
-    dispatch();
+    if(setjmp(current_thread->env) == 0){
+        schedule();
+        dispatch();
+    }
 }
 void dispatch(void){
     // TODO
@@ -65,7 +66,7 @@ void dispatch(void){
         current_thread->buf_set = 1;
         current_thread->env->sp = current_thread->stack_p;
     }
-    longjmp(current_thread->env, );
+    longjmp(current_thread->env, 1);
 }
 void schedule(void){
     // TODO
@@ -87,11 +88,24 @@ void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
         // TODO
         // Hint: No more thread to execute
+        free(current_thread->stack);
+        free(current_thread);
+        longjmp(env_st, 1);
     }
     else{
         // TODO
+        free(current_thread->stack);
+        free(current_thread);
+        schedule();
+        dispatch();
     }
 }
 void thread_start_threading(void){
     // TODO   
+    if(setjmp(env_st) == 0){
+        dispatch();
+    }
+    else{
+        return;
+    }
 }
