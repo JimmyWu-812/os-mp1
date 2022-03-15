@@ -70,19 +70,7 @@ void dispatch(void){
 }
 void schedule(void){
     // TODO
-    // struct thread *t = root_thread;
-    // while(1){
-    //     if(t->right != NULL){
-    //         t = t->right;
-    //     }
-    //     else if(t->left != NULL){
-    //         t = t->left;
-    //     }
-    //     else{
-    //         current_thread = t;
-    //         break;
-    //     }
-    // }
+    
 }
 void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
@@ -94,6 +82,32 @@ void thread_exit(void){
     }
     else{
         // TODO
+        struct thread *t = current_thread;
+        while(1){
+            if(t->right != NULL){
+                t = t->right;
+            }
+            else if(t->left != NULL){
+                t = t->left;
+            }
+            else{
+                break;
+            }
+        }
+        if(t != current_thread){
+            if(current_thread->parent->left == current_thread){
+                current_thread->parent->left = t;
+            }
+            else if(current_thread->parent->right == current_thread){
+                current_thread->parent->right = t;
+            }
+            t->parent = current_thread->parent;
+            t->left = current_thread->left;
+            t->right = current_thread->right;
+        }
+        current_thread->parent = NULL;
+        current_thread->left = NULL;        
+        current_thread->right = NULL;        
         free(current_thread->stack);
         free(current_thread);
         schedule();
