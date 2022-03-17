@@ -2,7 +2,6 @@
 #include "user/setjmp.h"
 #include "user/threads.h"
 #include "user/user.h"
-#include "user/setjmp.h"
 #define NULL 0
 
 static struct thread* current_thread = NULL;
@@ -36,6 +35,7 @@ void thread_add_runqueue(struct thread *t){
         // TODO
         current_thread = t;
         root_thread = t;
+        t->parent = NULL;
     }
     else{
         // TODO
@@ -70,7 +70,28 @@ void dispatch(void){
 }
 void schedule(void){
     // TODO
-    
+    struct thread *t = current_thread;
+    if(t->left != NULL){
+        t = t->left;
+    }
+    else if(t->right != NULL){
+        t = t->right;
+    }
+    else{
+        while(1){
+            if(root_thread == t){
+                break;
+            }
+            else if(t->parent->left == t){
+                t = t->parent;
+                break;
+            }
+            else{
+                t = t->parent;
+            }
+        }
+    }
+    current_thread = t;
 }
 void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
@@ -95,15 +116,41 @@ void thread_exit(void){
             }
         }
         if(t != current_thread){
-            if(current_thread->parent->left == current_thread){
-                current_thread->parent->left = t;
+            if(current_thread == root_thread){
+                root_thread = t;
+                t->parent = NULL;
             }
-            else if(current_thread->parent->right == current_thread){
-                current_thread->parent->right = t;
+            else{
+                t->parent = current_thread->parent;
+                if(current_thread->parent->left == current_thread){
+                    current_thread->parent->left = t;
+                }
+                else{
+                    current_thread->parent->right = t;
+                }
             }
-            t->parent = current_thread->parent;
-            t->left = current_thread->left;
-            t->right = current_thread->right;
+            if(current_thread->left == t){
+                if(current_thread->right != NULL){
+                    t->right = current_thread->right;
+                    t->right->parent = t;
+                }
+            }
+            else if(current_thread->right == t){
+                if(current_thread->right != NULL){
+                    t->left = current_thread->left;
+                    t->left->parent = t;
+                }
+            }
+            else{
+                if(current_thread->right != NULL){
+                    t->right = current_thread->right;
+                    t->right->parent = t;
+                }
+                if(current_thread->right != NULL){
+                    t->left = current_thread->left;
+                    t->left->parent = t;
+                }
+            }
         }
         current_thread->parent = NULL;
         current_thread->left = NULL;        
