@@ -4,11 +4,13 @@
 #include "user/user.h"
 #define NULL 0
 
+#define debug 0
+
 static struct thread* current_thread = NULL;
 static struct thread* root_thread = NULL;
 static int id = 1;
 static jmp_buf env_st;
-static jmp_buf env_tmp;
+// static jmp_buf env_tmp;
 // TODO: necessary declares, if any
 
 
@@ -25,6 +27,7 @@ struct thread *thread_create(void (*f)(void *), void *arg){
     t->buf_set = 0;
     t->stack = (void*) new_stack;
     t->stack_p = (void*) new_stack_p;
+    if(debug) printf("created: %d\n", id);
     id++;
     return t;
 }
@@ -36,16 +39,19 @@ void thread_add_runqueue(struct thread *t){
         current_thread = t;
         root_thread = t;
         t->parent = NULL;
+        if(debug) printf("added as root: %d\n", t->ID);
     }
     else{
         // TODO
         if(current_thread->left == NULL){
             t->parent = current_thread;
             current_thread->left = t;
+            if(debug) printf("added: %d\n", t->ID);
         }
         else if(current_thread->right == NULL){
             t->parent = current_thread;
             current_thread->right = t;
+            if(debug) printf("added: %d\n", t->ID);
         }
         else{
             free(t->stack);
@@ -55,7 +61,8 @@ void thread_add_runqueue(struct thread *t){
 }
 void thread_yield(void){
     // TODO
-    if(setjmp(current_thread->env) == 0){
+    if(setjmp(current_thread->env) == 0){ // 0: going to yield, 1: continue executing
+        if(debug) printf("yielded: %d\n", current_thread->ID);
         schedule();
         dispatch();
     }
@@ -64,9 +71,14 @@ void dispatch(void){
     // TODO
     if(current_thread->buf_set == 0){
         current_thread->buf_set = 1;
-        current_thread->env->sp = current_thread->stack_p;
+        current_thread->env->sp = (unsigned long)current_thread->stack_p;
+        (*current_thread->fp)(current_thread->arg);
     }
-    longjmp(current_thread->env, 1);
+    else{
+        if(debug) printf("dispatched: %d\n", current_thread->ID);
+        longjmp(current_thread->env, 1); // first time: hasn't been set??
+    }
+    // thread_exit()??
 }
 void schedule(void){
     // TODO
@@ -78,20 +90,10 @@ void schedule(void){
         t = t->right;
     }
     else{
-        while(1){
-            if(root_thread == t){
-                break;
-            }
-            else if(t->parent->left == t){
-                t = t->parent;
-                break;
-            }
-            else{
-                t = t->parent;
-            }
-        }
+
     }
     current_thread = t;
+    if(debug) printf("scheduled: %d\n", current_thread->ID);
 }
 void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
@@ -164,6 +166,7 @@ void thread_exit(void){
 void thread_start_threading(void){
     // TODO   
     if(setjmp(env_st) == 0){
+        if(debug) printf("started\n");
         dispatch();
     }
     else{
