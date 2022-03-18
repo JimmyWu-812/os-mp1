@@ -4,8 +4,6 @@
 #include "user/user.h"
 #define NULL 0
 
-#define debug 0
-
 static struct thread* current_thread = NULL;
 static struct thread* root_thread = NULL;
 static int id = 1;
@@ -27,7 +25,7 @@ struct thread *thread_create(void (*f)(void *), void *arg){
     t->buf_set = 0;
     t->stack = (void*) new_stack;
     t->stack_p = (void*) new_stack_p;
-    if(debug) printf("created: %d\n", id);
+    // // printf("  created: %d\n", id);
     id++;
     return t;
 }
@@ -39,19 +37,19 @@ void thread_add_runqueue(struct thread *t){
         current_thread = t;
         root_thread = t;
         t->parent = NULL;
-        if(debug) printf("added as root: %d\n", t->ID);
+        // // printf("  added as root: %d\n", t->ID);
     }
     else{
         // TODO
         if(current_thread->left == NULL){
             t->parent = current_thread;
             current_thread->left = t;
-            if(debug) printf("added: %d\n", t->ID);
+            // // printf("  added: %d\n", t->ID);
         }
         else if(current_thread->right == NULL){
             t->parent = current_thread;
             current_thread->right = t;
-            if(debug) printf("added: %d\n", t->ID);
+            // // printf("  added: %d\n", t->ID);
         }
         else{
             free(t->stack);
@@ -62,9 +60,14 @@ void thread_add_runqueue(struct thread *t){
 void thread_yield(void){
     // TODO
     if(setjmp(current_thread->env) == 0){ // 0: going to yield, 1: continue executing
-        if(debug) printf("yielded: %d\n", current_thread->ID);
+        // printf("  yielded: %d\n", current_thread->ID);
+        // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
         schedule();
         dispatch();
+    }
+    else{
+        // printf("  continued: %d\n", current_thread->ID);
+        // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
     }
 }
 void dispatch(void){
@@ -72,35 +75,68 @@ void dispatch(void){
     if(current_thread->buf_set == 0){
         current_thread->buf_set = 1;
         current_thread->env->sp = (unsigned long)current_thread->stack_p;
-        (*current_thread->fp)(current_thread->arg);
+        // printf("  first dispatched: %d\n", current_thread->ID);
+        current_thread->fp(current_thread->arg);
     }
     else{
-        if(debug) printf("dispatched: %d\n", current_thread->ID);
-        longjmp(current_thread->env, 1); // first time: hasn't been set??
+        printf("                dispatched: %d\n", current_thread->ID);
+        // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
+        longjmp(current_thread->env, 1);
     }
     // thread_exit()??
 }
 void schedule(void){
     // TODO
     struct thread *t = current_thread;
+    // printf("t == root_thread? %d\n", (t == root_thread));
     if(t->left != NULL){
         t = t->left;
     }
     else if(t->right != NULL){
         t = t->right;
     }
-    else{
-
+    else if(t != root_thread){
+        while(1){
+            while(t->parent->right == t){
+                t = t->parent;
+                // printf("        t: %d\n", t->ID);
+                if(t == root_thread){
+                    current_thread = t;
+                    // printf("  scheduled: %d\n", current_thread->ID);
+                    return;
+                }
+            }
+            while(t->parent->left == t){
+                t = t->parent;
+                if(t == root_thread){
+                    if(t->right == NULL){
+                        current_thread = t;
+                    }
+                    else{
+                        current_thread = t->right;
+                    }
+                    // printf("  scheduled: %d\n", current_thread->ID);
+                    return;
+                }
+                if(t->right != NULL){
+                    current_thread = t->right;
+                    // printf("  scheduled: %d\n", current_thread->ID);
+                    return;
+                }
+            }
+        }
     }
     current_thread = t;
-    if(debug) printf("scheduled: %d\n", current_thread->ID);
+    // printf("  scheduled: %d\n", current_thread->ID);
 }
 void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
         // TODO
         // Hint: No more thread to execute
+        printf("  exited: %d\n", current_thread->ID);
         free(current_thread->stack);
         free(current_thread);
+        current_thread = NULL;
         longjmp(env_st, 1);
     }
     else{
@@ -153,23 +189,41 @@ void thread_exit(void){
                     t->left->parent = t;
                 }
             }
+            current_thread->parent = NULL;
+            current_thread->left = NULL;        
+            current_thread->right = NULL;        
+            free(current_thread->stack);
+            free(current_thread);
+            current_thread = t;
+            schedule();
+            dispatch();
         }
-        current_thread->parent = NULL;
-        current_thread->left = NULL;        
-        current_thread->right = NULL;        
-        free(current_thread->stack);
-        free(current_thread);
-        schedule();
-        dispatch();
+        else{
+            schedule();
+            printf("  after exited, next thread: %d\n", current_thread->ID);
+            if(t->parent->left == t){
+                t->parent->left = NULL;
+            }
+            else if(t->parent->right == t){
+                t->parent->right = NULL;
+            }
+            t->parent = NULL;
+            t->left = NULL;        
+            t->right = NULL;        
+            free(t->stack);
+            free(t);
+            dispatch();
+        }
     }
 }
 void thread_start_threading(void){
     // TODO   
     if(setjmp(env_st) == 0){
-        if(debug) printf("started\n");
+        // printf("  started\n");
         dispatch();
     }
     else{
+        // printf("  ended\n");
         return;
     }
 }
