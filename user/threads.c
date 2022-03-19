@@ -25,7 +25,7 @@ struct thread *thread_create(void (*f)(void *), void *arg){
     t->buf_set = 0;
     t->stack = (void*) new_stack;
     t->stack_p = (void*) new_stack_p;
-    // // printf("  created: %d\n", id);
+    // printf("  created: %d\n", id);
     id++;
     return t;
 }
@@ -37,19 +37,19 @@ void thread_add_runqueue(struct thread *t){
         current_thread = t;
         root_thread = t;
         t->parent = NULL;
-        // // printf("  added as root: %d\n", t->ID);
+        // printf("  added as root: %d\n", t->ID);
     }
     else{
         // TODO
         if(current_thread->left == NULL){
             t->parent = current_thread;
             current_thread->left = t;
-            // // printf("  added: %d\n", t->ID);
+            // printf("  added: %d\n", t->ID);
         }
         else if(current_thread->right == NULL){
             t->parent = current_thread;
             current_thread->right = t;
-            // // printf("  added: %d\n", t->ID);
+            // printf("  added: %d\n", t->ID);
         }
         else{
             free(t->stack);
@@ -70,55 +70,44 @@ void thread_yield(void){
         // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
     }
 }
-// void dispatch(void){
-//     // if thread doesn't executed before
-//     if(current_thread->buf_set == 0) {
-//         // initialize jump_buf of current thread
-//         if(setjmp(current_thread->env)) {
-//             // return from a longjmp means that process's sp is set
-//             // now we can execute current thread
-//             current_thread->fp(current_thread->arg);
-//             // In case the thread's funcion just returns, the thread needs to be 
-//             // removed from the runqueue and the next one has to be dispatched.
-//             thread_exit();
-//         }
-//         // set sp in jmp_buf, it will be used in longjmp to setup process's sp(in CPU register) later
-//         current_thread->env->sp = (unsigned long)current_thread->stack_p;
-//         current_thread->buf_set = 1;
-//         // use jmp_buf to setup process's sp(in CPU register)
-//         longjmp(current_thread->env, 1);
-//     }
-//     // if thread has executed
-//     else {
-//         // Load current thread's context
-//         longjmp(current_thread->env, 1);        
-//     }
-// }
 void dispatch(void){
     // TODO
     if(current_thread->buf_set == 0){
         if(setjmp(current_thread->env) == 1){
             // printf("  first dispatched: %d\n", current_thread->ID);
-            printf("  thread function executed: %d\n", current_thread->ID);
+            // printf("  thread function executed: %d\n", current_thread->ID);
             current_thread->fp(current_thread->arg);
-            printf("  returned: %d\n", current_thread->ID);
+            // printf("  returned: %d\n", current_thread->ID);
             thread_exit();
         }
         current_thread->buf_set = 1;
         current_thread->env->sp = (unsigned long)current_thread->stack_p;
-        printf("  dispatched(current->buf_set == 0): %d\n", current_thread->ID);
+        // printf("  dispatched(current->buf_set == 0): %d\n", current_thread->ID);
         longjmp(current_thread->env, 1);
     }
     else{
         // printf("                dispatched: %d\n", current_thread->ID);
         // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
-        printf("  lonjmp(current->buf_set == 1): %d\n", current_thread->ID);
+        // printf("  lonjmp(current->buf_set == 1): %d\n", current_thread->ID);
         longjmp(current_thread->env, 1);
     }
+}
+void printPreTrav(struct thread *t){
+    if(t == NULL){
+        printf("N ");
+        return;
+    }
+    printf("(%d) ", t->parent->ID);
+    printf("%d ", t->ID);
+    printPreTrav(t->left);
+    printPreTrav(t->right);
 }
 void schedule(void){
     // TODO
     struct thread *t = current_thread;
+    printf("  ");
+    printPreTrav(root_thread);
+    printf("\n");
     // printf("t == root_thread? %d\n", (t == root_thread));
     if(t->left != NULL){
         t = t->left;
@@ -130,7 +119,7 @@ void schedule(void){
         while(1){
             while(t->parent->right == t){
                 t = t->parent;
-                // printf("        t: %d\n", t->ID);
+                // printf("  t: %d\n", t->ID);
                 if(t == root_thread){
                     current_thread = t;
                     // printf("  scheduled: %d\n", current_thread->ID);
@@ -175,19 +164,50 @@ void thread_exit(void){
         struct thread *t = current_thread;
         while(1){
             if(t->right != NULL){
+                // printf("  right, t->ID: %d\n", t->ID);
                 t = t->right;
             }
             else if(t->left != NULL){
+                // printf("  left, t->ID: %d\n", t->ID);
                 t = t->left;
             }
             else{
+                // printf("  break, t->ID: %d\n", t->ID);
                 break;
             }
         }
         if(t != current_thread){
+            if(current_thread->left == t){
+                if(current_thread->right != NULL){
+                    t->right = current_thread->right;
+                    t->right->parent = t;
+                }
+            }
+            else if(current_thread->right == t){
+                if(current_thread->left != NULL){
+                    t->left = current_thread->left;
+                    t->left->parent = t;
+                }
+            }
+            else{
+                if(current_thread->right != NULL){
+                    t->right = current_thread->right;
+                    t->right->parent = t;
+                }
+                if(current_thread->left != NULL){
+                    t->left = current_thread->left;
+                    t->left->parent = t;
+                }
+                if(t->parent->left == t){
+                    t->parent->left = NULL;
+                }
+                else{
+                    t->parent->right = NULL;
+                }
+            }
             if(current_thread == root_thread){
-                root_thread = t;
                 t->parent = NULL;
+                root_thread = t;
             }
             else{
                 t->parent = current_thread->parent;
@@ -196,28 +216,6 @@ void thread_exit(void){
                 }
                 else{
                     current_thread->parent->right = t;
-                }
-            }
-            if(current_thread->left == t){
-                if(current_thread->right != NULL){
-                    t->right = current_thread->right;
-                    t->right->parent = t;
-                }
-            }
-            else if(current_thread->right == t){
-                if(current_thread->right != NULL){
-                    t->left = current_thread->left;
-                    t->left->parent = t;
-                }
-            }
-            else{
-                if(current_thread->right != NULL){
-                    t->right = current_thread->right;
-                    t->right->parent = t;
-                }
-                if(current_thread->right != NULL){
-                    t->left = current_thread->left;
-                    t->left->parent = t;
                 }
             }
             current_thread->parent = NULL;
