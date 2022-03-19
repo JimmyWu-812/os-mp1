@@ -156,7 +156,6 @@ void thread_exit(void){
         // printf("  exited: %d\n", current_thread->ID);
         free(current_thread->stack);
         free(current_thread);
-        current_thread = NULL;
         longjmp(env_st, 1);
     }
     else{

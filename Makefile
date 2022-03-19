@@ -121,6 +121,11 @@ $U/_mp1-1: $U/mp1-1.o $(LLIB)
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
+$U/_mp1-2: $U/mp1-2.o $(LLIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
@@ -152,6 +157,7 @@ UPROGS=\
 	$U/_threads\
 	$U/_mp1-0\
 	$U/_mp1-1\
+	$U/_mp1-2\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
