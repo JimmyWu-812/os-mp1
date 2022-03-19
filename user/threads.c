@@ -70,20 +70,51 @@ void thread_yield(void){
         // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
     }
 }
+// void dispatch(void){
+//     // if thread doesn't executed before
+//     if(current_thread->buf_set == 0) {
+//         // initialize jump_buf of current thread
+//         if(setjmp(current_thread->env)) {
+//             // return from a longjmp means that process's sp is set
+//             // now we can execute current thread
+//             current_thread->fp(current_thread->arg);
+//             // In case the thread's funcion just returns, the thread needs to be 
+//             // removed from the runqueue and the next one has to be dispatched.
+//             thread_exit();
+//         }
+//         // set sp in jmp_buf, it will be used in longjmp to setup process's sp(in CPU register) later
+//         current_thread->env->sp = (unsigned long)current_thread->stack_p;
+//         current_thread->buf_set = 1;
+//         // use jmp_buf to setup process's sp(in CPU register)
+//         longjmp(current_thread->env, 1);
+//     }
+//     // if thread has executed
+//     else {
+//         // Load current thread's context
+//         longjmp(current_thread->env, 1);        
+//     }
+// }
 void dispatch(void){
     // TODO
     if(current_thread->buf_set == 0){
+        if(setjmp(current_thread->env) == 1){
+            // printf("  first dispatched: %d\n", current_thread->ID);
+            printf("  thread function executed: %d\n", current_thread->ID);
+            current_thread->fp(current_thread->arg);
+            printf("  returned: %d\n", current_thread->ID);
+            thread_exit();
+        }
         current_thread->buf_set = 1;
         current_thread->env->sp = (unsigned long)current_thread->stack_p;
-        // printf("  first dispatched: %d\n", current_thread->ID);
-        current_thread->fp(current_thread->arg);
-    }
-    else{
-        printf("                dispatched: %d\n", current_thread->ID);
-        // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
+        printf("  dispatched(current->buf_set == 0): %d\n", current_thread->ID);
         longjmp(current_thread->env, 1);
     }
-    // thread_exit()??
+    else{
+        // printf("                dispatched: %d\n", current_thread->ID);
+        // printf("  ID/sp: %d/%d\n", current_thread->ID, current_thread->env->sp);
+        printf("  lonjmp(current->buf_set == 1): %d\n", current_thread->ID);
+        longjmp(current_thread->env, 1);
+    }
 }
 void schedule(void){
     // TODO
@@ -133,7 +164,7 @@ void thread_exit(void){
     if(current_thread == root_thread && current_thread->left == NULL && current_thread->right == NULL){
         // TODO
         // Hint: No more thread to execute
-        printf("  exited: %d\n", current_thread->ID);
+        // printf("  exited: %d\n", current_thread->ID);
         free(current_thread->stack);
         free(current_thread);
         current_thread = NULL;
@@ -200,7 +231,7 @@ void thread_exit(void){
         }
         else{
             schedule();
-            printf("  after exited, next thread: %d\n", current_thread->ID);
+            // printf("  after exited, next thread: %d\n", current_thread->ID);
             if(t->parent->left == t){
                 t->parent->left = NULL;
             }
