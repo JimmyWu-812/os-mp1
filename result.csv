@@ -1,1 +1,5 @@
 == Test thread package with public testcase 0 (20%) ==
+thread package with public testcase 0: OK (3.2s)
+== Test thread package with public testcase 1 (20%) ==
+thread package with public testcase 1: OK (1.0s)
+Score: 40/40

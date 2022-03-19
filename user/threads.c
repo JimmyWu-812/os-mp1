@@ -105,9 +105,9 @@ void printPreTrav(struct thread *t){
 void schedule(void){
     // TODO
     struct thread *t = current_thread;
-    printf("  ");
-    printPreTrav(root_thread);
-    printf("\n");
+    // printf("  ");
+    // printPreTrav(root_thread);
+    // printf("\n");
     // printf("t == root_thread? %d\n", (t == root_thread));
     if(t->left != NULL){
         t = t->left;
